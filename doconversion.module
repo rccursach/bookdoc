@@ -1,3 +1,110 @@
 <?php
 
-?>
+/**
+ * Implements hook_permission().
+ */
+function doconversion_permission(){
+	return array(
+		'DoConversion doc conversion module' => array(
+			'title' => t('Allow access'),
+			'description' => t('Permits to see the module view/block'),
+		),
+	);
+}
+
+/**
+ * Implements hook_menu().
+ */
+function doconversion_menu(){
+	$items = array();
+
+	$items['doconversion'] = array(
+		'title' => 'DOConversion',
+		'page callback' => 'doconversion_basic', // Function callback to render when accessing mysite.com/doconversion
+		//'access callback' => 'user_access', //call user_access('access content') is default behaviour if we dont specify another, so i leave it commented.
+		'access arguments' => array('access content'),
+		//'file' => 'doconversion.menu.inc', //moved to main file due to the very short lenght of the function code, thanks to to a rewrite using forms.
+		'type' => MENU_NORMAL_ITEM | MENU_LOCAL_TASK,
+	);
+
+	return $items;
+}
+
+/**
+ * Implements doconversion_basic().
+ *
+ * Default view to render when accessing mysite.com/doconversion
+ */
+function doconversion_basic(){
+	return drupal_get_form('doconversion_form');
+}
+
+
+//
+// Form and file upload hooks and functions
+//
+
+
+/**
+ * Implements hook_form()
+ */
+function doconversion_form($form, &$form_state) {
+  $form['file'] = array(
+    '#type' => 'file',
+    '#title' => t('Subir un documento a DOConversion'),
+    '#description' => t('Seleccione el documento que desea subir'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Subir archivo'),
+  );
+
+  return $form;
+}
+
+/**
+ * Form validation
+ * Save the file as temporary file
+ */
+function doconversion_form_validate($form, &$form_state) {
+  $file = file_save_upload('file', array(), 'public://'.variable_get(gettimeofday()['sec'].'file', ''), FILE_EXISTS_RENAME);
+
+  // Stores the file object to handle it later in the submit function
+  if ($file) { // File saved successfully
+    $form_state['storage']['file'] = $file;
+  }
+  else { // Error while saving file
+    form_set_error('file', t('No se logró subir el archivo'));
+  }
+}
+
+/**
+ * Form submit
+ */
+function doconversion_form_submit($form, &$form_state) {
+  // Get the file object
+  $file = $form_state['storage']['file'];
+  
+  // Get the file path
+  $file_path = drupal_realpath($file->uri);
+
+  //process document file to html
+  process_document_file($file_path, $file->filename);
+}
+
+function process_document_file($filepath, $filename){
+	$html_dir = str_replace('.', '_html_', $filepath).gettimeofday()['sec'];
+	$html_file = $html_dir.'/'.str_replace('.', '_', $filename).'.html';
+
+	$cmd_line = 'sudo /usr/bin/unoconv -v -f html -o '.$html_file.' '.$filepath;
+
+	$unoconv_output = shell_exec($cmd_line);
+
+	if ($unoconv_output){
+	 	drupal_set_message('La conversión se logró con exito.', 'status');
+	}
+	else{
+		drupal_set_message('No se pudo convertir el archivo: ' . ($unoconv_output == "" ? "Error desconocido" : $unoconv_output), 'error');
+	}
+}
