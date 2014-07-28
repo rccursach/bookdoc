@@ -18,13 +18,13 @@ Some steps of automation were coded on ruby.
 
 It's spected:
 
-*	*Ruby >= 1.9.3
-*	*`nokogiri` Gem installed
+*	Ruby >= 1.9.3
+*	`nokogiri` Gem installed
 
 
 ## Unoconv ##
 
-Unoconv is used to convert documents different formats to HTML, so it's required.
+Unoconv is used to convert documents from different formats to HTML, so it's required.
 
 On ubuntu:
 
@@ -35,7 +35,7 @@ On ubuntu:
 ## html2book ##
 
 
-Drupal module html2book it's spected to be enabled on your site, is used to split on a specified level of headings, the book chapters from the html file.
+Drupal module html2book should be installed and enabled on your site. html2book is used to split on a specified level of headings, the book chapters from the html file.
 
 
 With drush:
