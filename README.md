@@ -1,4 +1,4 @@
-DOConversion Drupal 7.x Module
+Bookdoc Drupal 7.x Module
 ==============================
 
 

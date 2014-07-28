@@ -3,9 +3,9 @@
 /**
  * Implements hook_permission().
  */
-function doconversion_permission(){
+function bookdoc_permission(){
 	return array(
-		'DoConversion doc conversion module' => array(
+		'bookdoc doc conversion module' => array(
 			'title' => t('Allow access'),
 			'description' => t('Permits to see the module view/block'),
 		),
@@ -15,15 +15,15 @@ function doconversion_permission(){
 /**
  * Implements hook_menu().
  */
-function doconversion_menu(){
+function bookdoc_menu(){
 	$items = array();
 
-	$items['doconversion'] = array(
-		'title' => 'DOConversion',
-		'page callback' => 'doconversion_basic', // Function callback to render when accessing mysite.com/doconversion
+	$items['bookdoc'] = array(
+		'title' => 'bookdoc',
+		'page callback' => 'bookdoc_basic', // Function callback to render when accessing mysite.com/bookdoc
 		//'access callback' => 'user_access', //call user_access('access content') is default behaviour if we dont specify another, so i leave it commented.
 		'access arguments' => array('access content'),
-		//'file' => 'doconversion.menu.inc', //moved to main file due to the very short lenght of the function code, thanks to to a rewrite using forms.
+		//'file' => 'bookdoc.menu.inc', //moved to main file due to the very short lenght of the function code, thanks to to a rewrite using forms.
 		'type' => MENU_NORMAL_ITEM | MENU_LOCAL_TASK,
 	);
 
@@ -31,12 +31,12 @@ function doconversion_menu(){
 }
 
 /**
- * Implements doconversion_basic().
+ * Implements bookdoc_basic().
  *
- * Default view to render when accessing mysite.com/doconversion
+ * Default view to render when accessing mysite.com/bookdoc
  */
-function doconversion_basic(){
-	return drupal_get_form('doconversion_form');
+function bookdoc_basic(){
+	return drupal_get_form('bookdoc_form');
 }
 
 
@@ -48,10 +48,10 @@ function doconversion_basic(){
 /**
  * Implements hook_form()
  */
-function doconversion_form($form, &$form_state) {
+function bookdoc_form($form, &$form_state) {
   $form['file'] = array(
     '#type' => 'file',
-    '#title' => t('Subir un documento a DOConversion'),
+    '#title' => t('Subir un documento a bookdoc'),
     '#description' => t('Seleccione el documento que desea subir'),
   );
 
@@ -73,7 +73,7 @@ function doconversion_form($form, &$form_state) {
  * Form validation
  * Save the file as temporary file
  */
-function doconversion_form_validate($form, &$form_state) {
+function bookdoc_form_validate($form, &$form_state) {
   $file = file_save_upload('file', array(), 'public://'.variable_get(gettimeofday()['sec'].'file', ''), FILE_EXISTS_RENAME);
 
   // Stores the file object to handle it later in the submit function
@@ -88,7 +88,7 @@ function doconversion_form_validate($form, &$form_state) {
 /**
  * Form submit
  */
-function doconversion_form_submit($form, &$form_state) {
+function bookdoc_form_submit($form, &$form_state) {
   // Get the file object
   $file = $form_state['storage']['file'];
   
@@ -123,7 +123,7 @@ function process_document_file($filepath, $filename, $local_path){
 	$cmd_line = 'sudo /usr/bin/unoconv -v -f html -o '.$html_file.' '.$filepath;
 	$unoconv_output = shell_exec($cmd_line);
 	
-	$rb_script = drupal_get_path('module', 'doconversion').'/fix_img_uri.rb';
+	$rb_script = drupal_get_path('module', 'bookdoc').'/fix_img_uri.rb';
 	$rb_script = drupal_realpath($rb_script);
 
 	$cmd_line = "sudo /usr/bin/env ruby ".$rb_script." ".$html_file." ".$local_path;
@@ -154,7 +154,7 @@ function create_book($title, $file_path){
 
 	//[todo] validate outputs
 	//$data = mb_convert_encoding(file_get_contents($file_path), "UTF-8");
-	$rb_script = drupal_get_path('module', 'doconversion').'/readfile.rb';
+	$rb_script = drupal_get_path('module', 'bookdoc').'/readfile.rb';
 	$rb_script = drupal_realpath($rb_script);
 	$cmd_line = "sudo /usr/bin/env ruby ".$rb_script." ".$file_path;
 	$data = shell_exec($cmd_line);
