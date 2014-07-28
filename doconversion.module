@@ -55,6 +55,12 @@ function doconversion_form($form, &$form_state) {
     '#description' => t('Seleccione el documento que desea subir'),
   );
 
+  $form['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Título'),
+    '#description' => t('Título del documento.'),
+  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Subir archivo'),
@@ -86,25 +92,81 @@ function doconversion_form_submit($form, &$form_state) {
   // Get the file object
   $file = $form_state['storage']['file'];
   
+  $title = $form_state['values']['title'];
   // Get the file path
   $file_path = drupal_realpath($file->uri);
 
+  //get local path
+	$url = file_create_url('public://');
+	$url = parse_url($url);
+	$local_path = $url['path'];
+
   //process document file to html
-  process_document_file($file_path, $file->filename);
+  $html_file = process_document_file($file_path, $file->filename, $local_path);
+
+  //create book
+  create_book($title, $html_file);
 }
 
-function process_document_file($filepath, $filename){
+function process_document_file($filepath, $filename, $local_path){
 	$html_dir = str_replace('.', '_html_', $filepath).gettimeofday()['sec'];
 	$html_file = $html_dir.'/'.str_replace('.', '_', $filename).'.html';
 
-	$cmd_line = 'sudo /usr/bin/unoconv -v -f html -o '.$html_file.' '.$filepath;
+	//security str replacement to avoid accessing sensible files
+	//on malformed filenames
+	$html_file = str_replace('/../', '/', $html_file);
+	$html_file = str_replace('~/', '', $html_file);
 
+	$path_arr = explode('/', $html_dir);
+	$local_path = $local_path . $path_arr[count($path_arr)-1];
+
+	$cmd_line = 'sudo /usr/bin/unoconv -v -f html -o '.$html_file.' '.$filepath;
 	$unoconv_output = shell_exec($cmd_line);
+	
+	$rb_script = drupal_get_path('module', 'doconversion').'/fix_img_uri.rb';
+	$rb_script = drupal_realpath($rb_script);
+
+	$cmd_line = "sudo /usr/bin/env ruby ".$rb_script." ".$html_file." ".$local_path;
+	$fixpath_out = shell_exec($cmd_line);
+
 
 	if ($unoconv_output){
-	 	drupal_set_message('La conversión se logró con exito.', 'status');
+ 		drupal_set_message('La conversión se logró con exito.', 'status');
+ 		drupal_set_message('Correción de rutas para imágenes: '.$fixpath_out.".", 'status');
+ 		return $html_file;
 	}
 	else{
 		drupal_set_message('No se pudo convertir el archivo: ' . ($unoconv_output == "" ? "Error desconocido" : $unoconv_output), 'error');
+	}
+	return '';
+}
+
+function create_book($title, $file_path){
+	$node = new stdClass();
+	$node->type = "book";
+	$node->title = $title;
+	$node->language = LANGUAGE_NONE;
+	$node->uid = 1;
+	$node->status = 1; //publish on submit
+	$node->promote = 1; //and promote
+
+	node_object_prepare($node);
+
+	//[todo] validate outputs
+	//$data = mb_convert_encoding(file_get_contents($file_path), "UTF-8");
+	$rb_script = drupal_get_path('module', 'doconversion').'/readfile.rb';
+	$rb_script = drupal_realpath($rb_script);
+	$cmd_line = "sudo /usr/bin/env ruby ".$rb_script." ".$file_path;
+	$data = shell_exec($cmd_line);
+	$data = mb_convert_encoding($data, "UTF-8");
+
+	if($data){
+		$node->body[$node->language][0]['value'] = $data;
+		$node->body[$node->language][0]['format'] = 'basic_html';
+		$node = node_submit($node);
+		node_save($node);
+	}
+	else{
+		drupal_set_message('No se pudo leer el archivo html mientras se generaba el book', 'error');
 	}
 }

@@ -2,6 +2,7 @@ name = DOConversion
 description = Convert files from text documents to an entire Book node.
 package = Custom
 dependencies[] = book
+dependencies[] = html2book
 version = VERSION
 core = 7.x
 version = "0.00"

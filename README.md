@@ -18,6 +18,7 @@ Requirements:
 www-data was added to /etc/sudoers with this line:
 
   www-data    ALL=NOPASSWD: /usr/bin/unoconv
+  www-data    ALL=NOPASSWD: /usr/bin/env
 
 www-data entry in '/etc/passwd' so, at the end, instead of '/bin/sh' was an:
 '/bin/bash'
